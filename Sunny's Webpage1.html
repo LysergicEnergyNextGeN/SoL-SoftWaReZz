@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Kaleidoscope Background</title>
+<style>
+    html,body { height:100%; margin:0; background:#000; overflow:hidden; }
+    canvas { display:block; width:100%; height:100%; }
+    /* optional center instruction */
+    .hint{
+        position:fixed; left:12px; bottom:12px; color:rgba(255,255,255,.6);
+        font:12px/1 system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+        user-select:none; pointer-events:none;
+    }
+</style>
+</head>
+<body>
+<canvas id="kale"></canvas>
+<div class="hint">Move mouse to shift center • Click to toggle spin</div>
+
+<script>
+(() => {
+    const canvas = document.getElementById('kale');
+    const ctx = canvas.getContext('2d');
+
+    let dpr = Math.max(1, window.devicePixelRatio || 1);
+    function resize(){
+        dpr = Math.max(1, window.devicePixelRatio || 1);
+        canvas.width = Math.floor(innerWidth * dpr);
+        canvas.height = Math.floor(innerHeight * dpr);
+        canvas.style.width = innerWidth + 'px';
+        canvas.style.height = innerHeight + 'px';
+        ctx.setTransform(dpr,0,0,dpr,0,0);
+    }
+    addEventListener('resize', resize, false);
+    resize();
+
+    let segments = 12;          // kaleidoscope symmetry
+    let petals = 6;            // shapes per segment
+    let spin = 0.0004;         // rotation speed
+    let spinning = true;
+    let mouse = { x: innerWidth/2, y: innerHeight/2 };
+
+    addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+    addEventListener('touchmove', e => {
+        const t = e.touches[0]; if (t) { mouse.x = t.clientX; mouse.y = t.clientY; }
+    }, {passive:true});
+    addEventListener('click', ()=> spinning = !spinning);
+
+    function draw(now){
+        now *= 0.001; // seconds
+        ctx.clearRect(0,0,innerWidth,innerHeight);
+
+        // center follows mouse slightly
+        const cx = innerWidth * 0.5 + (mouse.x - innerWidth*0.5) * 0.25;
+        const cy = innerHeight * 0.5 + (mouse.y - innerHeight*0.5) * 0.25;
+
+        // background subtle fade
+        ctx.fillStyle = 'rgba(0,0,0,0.08)';
+        ctx.fillRect(0,0,innerWidth,innerHeight);
+
+        // global blend for glow-like effect
+        ctx.globalCompositeOperation = 'lighter';
+
+        // rotation base (spins over time)
+        const baseRot = (spinning ? now * spin * 360 : 0) * Math.PI / 180;
+
+        const maxR = Math.hypot(innerWidth, innerHeight) * 0.7;
+        for(let s=0; s<segments; s++){
+            const angle = s * (2*Math.PI/segments);
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(angle + baseRot);
+
+            // create one segment: draw mirrored petals
+            for(let p=0; p<petals; p++){
+                const t = (now*0.2 + s*0.04 + p*0.12) % 1;
+                const hue = Math.floor(((t*360) + s*20) % 360);
+                const saturation = 75;
+                const light = 55 + Math.sin(now*2 + p) * 10;
+
+                // position and size for petal
+                const r1 = maxR * (0.05 + 0.6 * Math.abs(Math.sin((p+1)*0.6 + now*0.7)));
+                const r2 = r1 * (1 + 0.6 * Math.cos(now + p));
+                const theta = (p / petals - 0.5) * (Math.PI / 6);
+
+                // build gradient for petal
+                const grad = ctx.createRadialGradient(0,0, r1*0.1, Math.cos(theta)*r2, Math.sin(theta)*r2, r2);
+                grad.addColorStop(0, `hsla(${hue},${saturation}%,${Math.max(30,light-10)}%,0.85)`);
+                grad.addColorStop(0.6, `hsla(${(hue+30)%360},${saturation}%,${light}%,0.65)`);
+                grad.addColorStop(1, `hsla(${(hue+60)%360},${saturation}%,${Math.min(90,light+20)}%,0.05)`);
+
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                // petal shape: bezier-like triangle
+                ctx.moveTo(0, 0);
+                ctx.quadraticCurveTo(Math.cos(theta)*r1, Math.sin(theta)*r1, Math.cos(theta)*r2, Math.sin(theta)*r2);
+                ctx.quadraticCurveTo(Math.cos(theta+0.2)*r1*0.6, Math.sin(theta+0.2)*r1*0.6, 0, 0);
+                ctx.fill();
+
+                // mirrored counterpart for symmetry
+                ctx.save();
+                ctx.scale(-1,1);
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.moveTo(0,0);
+                ctx.quadraticCurveTo(Math.cos(theta)*r1, Math.sin(theta)*r1, Math.cos(theta)*r2, Math.sin(theta)*r2);
+                ctx.quadraticCurveTo(Math.cos(theta+0.2)*r1*0.6, Math.sin(theta+0.2)*r1*0.6, 0, 0);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            ctx.restore();
+        }
+
+        // subtle vignette for contrast
+        ctx.globalCompositeOperation = 'source-over';
+        const vignette = ctx.createRadialGradient(cx, cy, Math.min(innerWidth,innerHeight)*0.2, cx, cy, Math.max(innerWidth,innerHeight));
+        vignette.addColorStop(0, 'rgba(0,0,0,0)');
+        vignette.addColorStop(1, 'rgba(0,0,0,0.25)');
+        ctx.fillStyle = vignette;
+        ctx.fillRect(0,0,innerWidth,innerHeight);
+
+        requestAnimationFrame(draw);
+    }
+
+    requestAnimationFrame(draw);
+})();
+</script>
+</body>
+</html>
