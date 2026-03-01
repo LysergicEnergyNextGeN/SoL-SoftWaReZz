@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trippy Animations</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: black;
+        }
+        .fractal {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            animation: rotate 10s linear infinite;
+        }
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="fractal">
+        <img src="fractal1.png" alt="Fractal 1" style="width:100%; height:100%;" />
+    </div>
+    <div class="fractal">
+        <img src="fractal2.png" alt="Fractal 2" style="width:100%; height:100%;" />
+    </div>
+    <div class="fractal">
+        <img src="fractal3.png" alt="Fractal 3" style="width:100%; height:100%;" />
+    </div>
+</body>
+</html>
